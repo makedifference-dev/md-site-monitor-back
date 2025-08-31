@@ -21,6 +21,8 @@ dotenv.config();
 const configService = ConfigService.getInstance();
 
 const app = express();
+// Behind reverse proxies (e.g., Nginx) trust X-Forwarded-* headers for correct client IP/proto
+app.set('trust proxy', 1);
 const port = configService.port;
 
 // Performance middleware

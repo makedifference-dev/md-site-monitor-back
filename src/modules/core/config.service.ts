@@ -46,6 +46,14 @@ const envSchema = z.object({
 
   // Monitoring
   MONITOR_CONCURRENCY: z.string().transform(Number).default('5'),
+
+  // Rate limiting (API)
+  API_RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('60000'), // 1 min by default
+  API_RATE_LIMIT_MAX: z.string().transform(Number).default('1200'), // 1200 req/min per IP
+
+  // Rate limiting (Auth)
+  AUTH_RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'), // 15 min
+  AUTH_RATE_LIMIT_MAX: z.string().transform(Number).default('10'), // 10 attempts per 15 min
 });
 
 // Тип конфигурации
@@ -196,6 +204,22 @@ export class ConfigService {
   // Monitoring
   public get monitorConcurrency(): number {
     return this.config.MONITOR_CONCURRENCY;
+  }
+
+  // Rate limiting (API)
+  public get apiRateLimitWindowMs(): number {
+    return this.config.API_RATE_LIMIT_WINDOW_MS;
+  }
+  public get apiRateLimitMax(): number {
+    return this.config.API_RATE_LIMIT_MAX;
+  }
+
+  // Rate limiting (Auth)
+  public get authRateLimitWindowMs(): number {
+    return this.config.AUTH_RATE_LIMIT_WINDOW_MS;
+  }
+  public get authRateLimitMax(): number {
+    return this.config.AUTH_RATE_LIMIT_MAX;
   }
 
   /**

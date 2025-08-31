@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import { ConfigService } from './config.service';
 
 // Сжатие ответов
 export const compressionMiddleware = compression({
@@ -58,10 +59,11 @@ export const slowQueryLogger = (threshold: number = 1000) => {
 // External rate-limit store (e.g., Redis) can be plugged in deployment; using in-memory here
 const apiStore: import('express-rate-limit').Store | undefined = undefined;
 const authStore: import('express-rate-limit').Store | undefined = undefined;
+const config = ConfigService.getInstance();
 
 export const apiRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 100, // максимум 100 запросов с одного IP
+  windowMs: config.apiRateLimitWindowMs,
+  max: config.apiRateLimitMax,
   message: {
     error: 'TOO_MANY_REQUESTS',
     message: 'Too many requests from this IP, please try again later.',
@@ -77,8 +79,8 @@ export const apiRateLimit = rateLimit({
 
 // Rate limiting для авторизации (более строгий)
 export const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 5, // максимум 5 попыток входа
+  windowMs: config.authRateLimitWindowMs,
+  max: config.authRateLimitMax,
   message: {
     error: 'TOO_MANY_AUTH_ATTEMPTS',
     message: 'Too many authentication attempts, please try again later.',
