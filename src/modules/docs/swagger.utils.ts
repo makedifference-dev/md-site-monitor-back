@@ -1,4 +1,4 @@
-import { OpenAPIV3 } from 'openapi-types';
+import type { OpenAPIV3 } from 'openapi-types';
 
 /**
  * Генерирует JSON Schema из TypeScript интерфейса
@@ -58,7 +58,7 @@ function generatePropertySchema(
           type: 'array',
           items:
             value.length > 0
-              ? (generatePropertySchema(value[0]) ?? { type: 'string' })
+              ? (generatePropertySchema(value[0]) as OpenAPIV3.SchemaObject)
               : { type: 'string' },
           example: value,
         };
@@ -156,13 +156,15 @@ export function createErrorSchema(
 /**
  * Генерирует документацию для эндпоинта
  */
+// Reuse exported HttpMethod below
+
 export function generateEndpointDoc(
   path: string,
   method: string,
   summary: string,
   description?: string
-): OpenAPIV3.OperationObject {
-  return {
+): Partial<Record<HttpMethod, OpenAPIV3.OperationObject>> {
+  const operation: OpenAPIV3.OperationObject = {
     summary,
     description,
     tags: [path.split('/')[1] ?? 'default'],
@@ -209,6 +211,9 @@ export function generateEndpointDoc(
       },
     },
   };
+
+  const httpMethod = (method || 'get').toLowerCase() as HttpMethod;
+  return { [httpMethod]: operation };
 }
 
 /**
@@ -256,4 +261,135 @@ export function createPaginatedResponseSchema<_T>(
     required: ['message', 'data'],
     description,
   };
+}
+
+// =============== Extended helpers for endpoint docs ===============
+
+export type HttpMethod =
+  | 'get'
+  | 'post'
+  | 'put'
+  | 'delete'
+  | 'patch'
+  | 'options'
+  | 'head'
+  | 'trace';
+
+export function ref(name: string): OpenAPIV3.ReferenceObject {
+  return { $ref: `#/components/schemas/${name}` };
+}
+
+export function makeParam(
+  name: string,
+  where: 'path' | 'query' | 'header' | 'cookie',
+  schema: OpenAPIV3.SchemaObject,
+  required: boolean,
+  description?: string
+): OpenAPIV3.ParameterObject {
+  return { name, in: where, required, description, schema };
+}
+
+export interface EndpointOptions {
+  description?: string;
+  tag?: string;
+  requestBody?: {
+    schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject;
+    required?: boolean;
+  };
+  parameters?: Array<OpenAPIV3.ParameterObject | OpenAPIV3.ReferenceObject>;
+  responses?: Record<
+    string,
+    {
+      description?: string;
+      schema?: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject;
+    }
+  >;
+  security?: OpenAPIV3.SecurityRequirementObject[];
+}
+
+export function buildEndpoint(
+  path: string,
+  method: HttpMethod,
+  summary: string,
+  options: EndpointOptions = {}
+): Partial<Record<HttpMethod, OpenAPIV3.OperationObject>> {
+  const operation: OpenAPIV3.OperationObject = {
+    summary,
+    description: options.description,
+    tags: [options.tag ?? path.split('/')[1] ?? 'default'],
+    parameters: options.parameters,
+    security: options.security,
+    responses: {},
+  };
+
+  if (options.requestBody) {
+    operation.requestBody = {
+      required: Boolean(options.requestBody.required),
+      content: {
+        'application/json': {
+          schema: options.requestBody.schema,
+        },
+      },
+    };
+  }
+
+  const responses: OpenAPIV3.ResponsesObject = {};
+  // Success 200 by default
+  responses['200'] = {
+    description:
+      options.responses?.['200']?.description ?? 'Successful response',
+    content: options.responses?.['200']?.schema
+      ? {
+          'application/json': {
+            schema: options.responses['200'].schema,
+          },
+        }
+      : undefined,
+  };
+  // Merge custom statuses
+  for (const [status, meta] of Object.entries(options.responses ?? {})) {
+    if (status === '200') {
+      continue;
+    }
+    responses[status] = {
+      description: meta.description ?? 'Response',
+      content: meta.schema
+        ? {
+            'application/json': {
+              schema: meta.schema,
+            },
+          }
+        : undefined,
+    };
+  }
+
+  // Add common error responses if absent
+  responses['400'] =
+    responses['400'] ??
+    ({
+      description: 'Bad request',
+      content: {
+        'application/json': { schema: createErrorSchema('BAD_REQUEST') },
+      },
+    } as OpenAPIV3.ResponseObject);
+  responses['401'] =
+    responses['401'] ??
+    ({
+      description: 'Unauthorized',
+      content: {
+        'application/json': { schema: createErrorSchema('UNAUTHORIZED') },
+      },
+    } as OpenAPIV3.ResponseObject);
+  responses['500'] =
+    responses['500'] ??
+    ({
+      description: 'Internal server error',
+      content: {
+        'application/json': { schema: createErrorSchema('INTERNAL_ERROR') },
+      },
+    } as OpenAPIV3.ResponseObject);
+
+  operation.responses = responses;
+
+  return { [method]: operation };
 }

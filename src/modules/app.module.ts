@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import ApiInfoModule from './api-info/api-info.module';
 import DocsModule from './docs/docs.module';
+import { ConfigService } from './core/config.service';
 import AuthModule from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -42,8 +43,11 @@ export class AppModule {
     // Основные маршруты
     this.router.use('/', this.apiInfoModule.getRouter());
 
-    // Документация API
-    this.router.use('/api-docs', this.docsModule.getRouter());
+    // Документация API: включаем только в dev или если явно разрешено
+    const config = ConfigService.getInstance();
+    if (config.isDevelopment || config.swaggerEnabled) {
+      this.router.use('/api-docs', this.docsModule.getRouter());
+    }
 
     // Авторизация
     this.router.use('/auth', this.authModule.getRouter());
@@ -52,13 +56,13 @@ export class AppModule {
     this.router.use('/projects', this.projectsModule.getRouter());
 
     // Мониторинг
-    this.router.use('/', this.monitoringModule.getRouter());
+    this.router.use('/monitoring', this.monitoringModule.getRouter());
 
     // Уведомления
-    this.router.use('/', this.notificationsModule.getRouter());
+    this.router.use('/notifications', this.notificationsModule.getRouter());
 
     // Health check
-    this.router.use('/', this.healthModule.getRouter());
+    this.router.use('/health', this.healthModule.getRouter());
   }
 
   private initializeErrorHandling(): void {

@@ -15,23 +15,17 @@ export class HealthModule {
   }
 
   private initializeRoutes(): void {
+    // Expose routes relative to module root; base is mounted in AppModule
     // Основной health check
-    this.router.get('/health', this.controller.getHealth.bind(this.controller));
+    this.router.get('/', this.controller.getHealth.bind(this.controller));
 
     // Детальная проверка базы данных
     this.router.get(
-      '/health/database',
+      '/database',
       this.controller.getDatabaseHealth.bind(this.controller)
     );
 
-    // Простой ping
-    this.router.get('/ping', this.controller.ping.bind(this.controller));
-
-    // Информация о версии
-    this.router.get(
-      '/version',
-      this.controller.getVersion.bind(this.controller)
-    );
+    // Простой ping и версия убраны по требованию
   }
 
   getRouter(): Router {

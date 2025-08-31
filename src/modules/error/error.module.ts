@@ -1,5 +1,7 @@
 import { ErrorService } from './error.service';
 import { ErrorController } from './error.controller';
+import type { Request, Response, NextFunction } from 'express';
+import type { ApiError } from './error.contract';
 
 export class ErrorModule {
   private service: ErrorService;
@@ -21,12 +23,17 @@ export class ErrorModule {
   }
 
   // Получить middleware обработчика ошибок
-  getErrorHandler() {
+  getErrorHandler(): (
+    error: Error | ApiError,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => void {
     return this.controller.getErrorHandler();
   }
 
   // Получить middleware обработчика 404
-  getNotFoundHandler() {
+  getNotFoundHandler(): (req: Request, res: Response) => void {
     return this.controller.getNotFoundHandler();
   }
 }

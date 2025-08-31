@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { DocsService } from './docs.service';
+import type { Request, Response } from 'express';
+import type { DocsService } from './docs.service';
 
 export class DocsController {
   constructor(private docsService: DocsService) {}

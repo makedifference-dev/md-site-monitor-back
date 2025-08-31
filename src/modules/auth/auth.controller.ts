@@ -1,7 +1,14 @@
-import { Request, Response } from 'express';
-import { AuthService } from './auth.service';
-import { RegisterRequest, LoginRequest } from './auth.types';
-import { ErrorService } from '../error/error.service';
+import type { Request, Response } from 'express';
+import type { AuthService } from './auth.service';
+import {
+  type RegisterRequest,
+  type LoginRequest,
+  type RequestUser,
+  validateLogin,
+  validateRefresh,
+  validateRegister,
+} from './auth.contract';
+import type { ErrorService } from '../error/error.service';
 
 export class AuthController {
   private errorService: ErrorService;
@@ -14,24 +21,13 @@ export class AuthController {
   }
 
   async register(req: Request, res: Response): Promise<void> {
-    const { email, password, fullName, phone } = req.body as RegisterRequest;
-
-    // Валидация
-    if (!email || !password) {
-      const error = this.errorService.createValidationError(
-        'Email and password are required'
-      );
+    const parsed = validateRegister(req.body);
+    if (!parsed.ok) {
+      const error = this.errorService.createValidationError(parsed.message);
       res.status(400).json(error);
       return;
     }
-
-    if (password.length < 6) {
-      const error = this.errorService.createValidationError(
-        'Password must contain at least 6 characters'
-      );
-      res.status(400).json(error);
-      return;
-    }
+    const { email, password, fullName, phone } = parsed.data as RegisterRequest;
 
     const result = await this.authService.register({
       email,
@@ -47,16 +43,13 @@ export class AuthController {
   }
 
   async login(req: Request, res: Response): Promise<void> {
-    const { email, password } = req.body as LoginRequest;
-
-    // Валидация
-    if (!email || !password) {
-      const error = this.errorService.createValidationError(
-        'Email and password are required'
-      );
+    const parsed = validateLogin(req.body);
+    if (!parsed.ok) {
+      const error = this.errorService.createValidationError(parsed.message);
       res.status(400).json(error);
       return;
     }
+    const { email, password } = parsed.data as LoginRequest;
 
     const result = await this.authService.login({ email, password });
 
@@ -67,15 +60,13 @@ export class AuthController {
   }
 
   async refreshToken(req: Request, res: Response): Promise<void> {
-    const { refreshToken } = req.body as { refreshToken: string };
-
-    if (!refreshToken) {
-      const error = this.errorService.createValidationError(
-        'Refresh token is required'
-      );
+    const parsed = validateRefresh(req.body);
+    if (!parsed.ok) {
+      const error = this.errorService.createValidationError(parsed.message);
       res.status(400).json(error);
       return;
     }
+    const { refreshToken } = parsed.data as { refreshToken: string };
 
     const result = await this.authService.refreshToken(refreshToken);
 
@@ -86,15 +77,13 @@ export class AuthController {
   }
 
   async logout(req: Request, res: Response): Promise<void> {
-    const { refreshToken } = req.body as { refreshToken: string };
-
-    if (!refreshToken) {
-      const error = this.errorService.createValidationError(
-        'Refresh token is required'
-      );
+    const parsed = validateRefresh(req.body);
+    if (!parsed.ok) {
+      const error = this.errorService.createValidationError(parsed.message);
       res.status(400).json(error);
       return;
     }
+    const { refreshToken } = parsed.data as { refreshToken: string };
 
     await this.authService.logout(refreshToken);
 
@@ -104,7 +93,7 @@ export class AuthController {
   }
 
   async logoutAll(req: Request, res: Response): Promise<void> {
-    const user = req.user as { id: string }; // Пользователь уже проверен middleware
+    const user = req.user as RequestUser; // Пользователь уже проверен middleware
 
     await this.authService.logoutAll(user.id);
 
@@ -114,7 +103,7 @@ export class AuthController {
   }
 
   getProfile(req: Request, res: Response): void {
-    const user = req.user as { id: string }; // Пользователь уже проверен middleware
+    const user = req.user as RequestUser; // Пользователь уже проверен middleware
 
     res.status(200).json({
       message: 'User profile',

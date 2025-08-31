@@ -1,33 +1,53 @@
 import {
+  buildEndpoint,
+  ref,
   generateSchemaFromInterface,
-  generateEndpointDoc,
+  makeParam,
 } from '../docs/swagger.utils';
 import {
   monitoringStatsExample,
   projectCheckHistoryExample,
   siteCheckResultExample,
-} from './monitoring.types';
+} from './monitoring.contract';
 
 export const monitoringDocs = {
-  '/monitoring/stats': generateEndpointDoc(
+  '/monitoring/stats': buildEndpoint(
     '/monitoring/stats',
     'get',
     'Get monitoring statistics (Admin only)',
-    'Monitoring'
+    {
+      tag: 'Monitoring',
+      security: [{ bearerAuth: [] }],
+      responses: { '200': { schema: ref('MonitoringStats') } },
+    }
   ),
 
-  '/monitoring/projects/{projectId}/history': generateEndpointDoc(
+  '/monitoring/projects/{projectId}/history': buildEndpoint(
     '/monitoring/projects/{projectId}/history',
     'get',
     'Get project check history',
-    'Monitoring'
+    {
+      tag: 'Monitoring',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        makeParam('projectId', 'path', { type: 'string' }, true),
+        makeParam('limit', 'query', { type: 'number' }, false),
+        makeParam('offset', 'query', { type: 'number' }, false),
+      ],
+      responses: { '200': { schema: ref('ProjectCheckHistory') } },
+    }
   ),
 
-  '/monitoring/projects/{projectId}/check': generateEndpointDoc(
+  '/monitoring/projects/{projectId}/check': buildEndpoint(
     '/monitoring/projects/{projectId}/check',
     'post',
     'Manually check a site',
-    'Monitoring'
+    {
+      tag: 'Monitoring',
+      security: [{ bearerAuth: [] }],
+      parameters: [makeParam('projectId', 'path', { type: 'string' }, true)],
+      responses: { '200': { schema: ref('SiteCheckResult') } },
+    }
   ),
 };
 

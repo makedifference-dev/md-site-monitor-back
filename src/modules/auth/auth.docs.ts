@@ -1,7 +1,8 @@
 // Автоматически сгенерированная документация для авторизации
 import {
+  buildEndpoint,
+  ref,
   generateSchemaFromInterface,
-  generateEndpointDoc,
 } from '../docs/swagger.utils';
 import {
   registerRequestExample,
@@ -10,52 +11,61 @@ import {
   logoutRequestExample,
   authResponseExample,
   userResponseExample,
-} from './auth.types';
+} from './auth.contract';
 
 // Схемы будут использоваться в authSchemas
 
 // Генерируем документацию для каждого endpoint
 export const authDocs = {
-  '/auth/register': generateEndpointDoc(
+  '/auth/register': buildEndpoint(
     '/auth/register',
     'post',
     'Register new user',
-    'Auth'
+    {
+      tag: 'Auth',
+      requestBody: { schema: ref('RegisterRequest'), required: true },
+      responses: { '200': { schema: ref('AuthResponse') } },
+    }
   ),
 
-  '/auth/login': generateEndpointDoc(
-    '/auth/login',
-    'post',
-    'User login',
-    'Auth'
-  ),
+  '/auth/login': buildEndpoint('/auth/login', 'post', 'User login', {
+    tag: 'Auth',
+    requestBody: { schema: ref('LoginRequest'), required: true },
+    responses: { '200': { schema: ref('AuthResponse') } },
+  }),
 
-  '/auth/refresh': generateEndpointDoc(
+  '/auth/refresh': buildEndpoint(
     '/auth/refresh',
     'post',
     'Refresh access token',
-    'Auth'
+    {
+      tag: 'Auth',
+      requestBody: { schema: ref('RefreshTokenRequest'), required: true },
+      responses: { '200': { schema: ref('AuthResponse') } },
+    }
   ),
 
-  '/auth/logout': generateEndpointDoc(
-    '/auth/logout',
-    'post',
-    'User logout',
-    'Auth'
-  ),
+  '/auth/logout': buildEndpoint('/auth/logout', 'post', 'User logout', {
+    tag: 'Auth',
+    security: [{ bearerAuth: [] }],
+    responses: { '200': { schema: ref('ApiResponse') } },
+  }),
 
-  '/auth/profile': generateEndpointDoc(
-    '/auth/profile',
-    'get',
-    'Get user profile',
-    'Auth'
-  ),
+  '/auth/profile': buildEndpoint('/auth/profile', 'get', 'Get user profile', {
+    tag: 'Auth',
+    security: [{ bearerAuth: [] }],
+    responses: { '200': { schema: ref('UserResponse') } },
+  }),
 
-  '/auth/logout-all': generateEndpointDoc(
+  '/auth/logout-all': buildEndpoint(
     '/auth/logout-all',
     'post',
     'Logout from all devices',
-    'Auth'
+    {
+      tag: 'Auth',
+      security: [{ bearerAuth: [] }],
+      responses: { '200': { schema: ref('ApiResponse') } },
+    }
   ),
 };
 

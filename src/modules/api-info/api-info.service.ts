@@ -1,4 +1,4 @@
-import { RootInfoResponse } from './api-info.types';
+import type { RootInfoResponse } from './api-info.contract';
 import { ConfigService } from '../core/config.service';
 
 export class ApiInfoService {
@@ -17,7 +17,7 @@ export class ApiInfoService {
       timestamp: new Date().toISOString(),
       uptime: (Date.now() - this.startTime) / 1000,
       environment: this.configService.nodeEnv,
-      endpoints: {
+      'doc-links': {
         docs: '/api-docs',
         spec: '/api-docs/json',
       },

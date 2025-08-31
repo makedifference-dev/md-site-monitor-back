@@ -1,7 +1,12 @@
 import * as bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { RegisterRequest, LoginRequest, AuthResponse } from './auth.types';
+import jwt from 'jsonwebtoken';
+import { type PrismaClient, type User } from '@prisma/client';
+import { hashRefreshToken, generateTokens } from './token.utils';
+import type {
+  RegisterRequest,
+  LoginRequest,
+  AuthResponse,
+} from './auth.contract';
 import { ErrorService } from '../error/error.service';
 import { DatabaseService } from '../core/database/database.service';
 import { ConfigService } from '../core/config.service';
@@ -48,12 +53,15 @@ export class AuthService {
     });
 
     // Генерируем токены
-    const { accessToken, refreshToken } = this.generateTokens(user.id);
+    const { accessToken, refreshToken } = generateTokens(
+      user.id,
+      this.configService
+    );
 
     // Сохраняем refresh token
     await this.prisma.refreshToken.create({
       data: {
-        token: refreshToken,
+        token: hashRefreshToken(refreshToken),
         userId: user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 дней
       },
@@ -92,12 +100,15 @@ export class AuthService {
     }
 
     // Генерируем токены
-    const { accessToken, refreshToken } = this.generateTokens(user.id);
+    const { accessToken, refreshToken } = generateTokens(
+      user.id,
+      this.configService
+    );
 
     // Сохраняем refresh token
     await this.prisma.refreshToken.create({
       data: {
-        token: refreshToken,
+        token: hashRefreshToken(refreshToken),
         userId: user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 дней
       },
@@ -114,7 +125,7 @@ export class AuthService {
   async refreshToken(token: string): Promise<AuthResponse> {
     // Проверяем refresh token
     const refreshTokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { token },
+      where: { token: hashRefreshToken(token) },
       include: { user: true },
     });
 
@@ -131,15 +142,16 @@ export class AuthService {
     }
 
     // Генерируем новые токены
-    const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(
-      refreshTokenRecord.userId
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(
+      refreshTokenRecord.userId,
+      this.configService
     );
 
     // Обновляем refresh token
     await this.prisma.refreshToken.update({
       where: { id: refreshTokenRecord.id },
       data: {
-        token: newRefreshToken,
+        token: hashRefreshToken(newRefreshToken),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 дней
       },
     });
@@ -154,7 +166,7 @@ export class AuthService {
 
   async logout(token: string): Promise<void> {
     await this.prisma.refreshToken.deleteMany({
-      where: { token },
+      where: { token: hashRefreshToken(token) },
     });
   }
 
@@ -164,24 +176,9 @@ export class AuthService {
     });
   }
 
-  private generateTokens(userId: string): {
-    accessToken: string;
-    refreshToken: string;
-  } {
-    const accessToken = jwt.sign({ userId }, this.configService.jwtSecret, {
-      expiresIn: this.configService.jwtExpiresIn,
-    } as SignOptions);
+  // Token generation moved to token.utils.ts
 
-    const refreshToken = jwt.sign(
-      { userId, type: 'refresh' },
-      this.configService.jwtRefreshSecret,
-      { expiresIn: this.configService.jwtRefreshExpiresIn } as SignOptions
-    );
-
-    return { accessToken, refreshToken };
-  }
-
-  async validateToken(token: string): Promise<import('@prisma/client').User> {
+  async validateToken(token: string): Promise<User> {
     try {
       const decoded = jwt.verify(token, this.configService.jwtSecret) as {
         userId: string;

@@ -1,14 +1,14 @@
 import nodemailer from 'nodemailer';
-import { PrismaClient } from '@prisma/client';
-import { ErrorService } from '../error/error.service';
-import { TelegramService } from '../telegram/telegram.service';
+import type { PrismaClient } from '@prisma/client';
+import type { ErrorService } from '../error/error.service';
+import type { TelegramService } from '../telegram/telegram.service';
 import { DatabaseService } from '../core/database/database.service';
 import { ConfigService } from '../core/config.service';
 import type {
   EmailNotification,
   SiteDownNotification,
   NotificationConfig,
-} from './notifications.types';
+} from './notifications.contract';
 
 export class NotificationsService {
   private prisma: PrismaClient;

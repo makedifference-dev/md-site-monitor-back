@@ -1,10 +1,10 @@
-import {
+import type {
   ApiError,
   ValidationError,
   AuthError,
   NotFoundError,
   InternalError,
-} from './error.types';
+} from './error.contract';
 
 export class ErrorService {
   createValidationError(message: string, field?: string): ValidationError {

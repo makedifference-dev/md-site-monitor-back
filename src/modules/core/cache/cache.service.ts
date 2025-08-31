@@ -1,5 +1,5 @@
 import { CacheStrategyManager } from './cache-strategy';
-import type { CacheStrategy, CacheItem } from './cache.types';
+import type { CacheStrategy, CacheItem } from './cache.contract';
 
 export class CacheService {
   private static instance: CacheService | null = null;

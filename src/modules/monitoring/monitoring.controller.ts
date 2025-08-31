@@ -1,8 +1,14 @@
-import { Router, Request, Response } from 'express';
-import { MonitoringService } from './monitoring.service';
-import { ErrorService } from '../error/error.service';
-import { AuthMiddleware } from '../auth/auth.middleware';
-import type { RequestUser } from '../auth/auth.types';
+import { Router, type Request, type Response } from 'express';
+import type { MonitoringService } from './monitoring.service';
+import type { ErrorService } from '../error/error.service';
+import type { AuthMiddleware } from '../auth/auth.middleware';
+import type { RequestUser } from '../auth/auth.contract';
+import { validateProjectIdParam as _validateProjectIdParam } from '../projects/projects.contract';
+import {
+  type MonitoringProjectIdParam,
+  monitoringPaginationSchema,
+  validateMonitoringProjectIdParam,
+} from './monitoring.contract';
 
 export class MonitoringController {
   private router: Router;
@@ -75,19 +81,21 @@ export class MonitoringController {
     res: Response
   ): Promise<void> {
     try {
-      const { projectId } = req.params;
-      const limit = parseInt(req.query.limit as string) || 50;
-      const offset = parseInt(req.query.offset as string) || 0;
-      const user = req.user as RequestUser;
-
-      if (!projectId) {
+      const idParsed = validateMonitoringProjectIdParam(req.params);
+      if (!idParsed.ok) {
         res.status(400).json({
           error: 'BAD_REQUEST',
-          message: 'Project ID is required',
+          message: idParsed.message,
           statusCode: 400,
         });
         return;
       }
+      const { projectId } = idParsed.data as MonitoringProjectIdParam;
+      const { limit, offset } = monitoringPaginationSchema.parse({
+        limit: req.query.limit,
+        offset: req.query.offset,
+      });
+      const user = req.user as RequestUser;
 
       // Проверяем, что проект принадлежит пользователю
       const project = await this.monitoringService.getProjectCheckHistory(
@@ -130,17 +138,17 @@ export class MonitoringController {
 
   private async checkSiteManually(req: Request, res: Response): Promise<void> {
     try {
-      const { projectId } = req.params;
-      const user = req.user as RequestUser;
-
-      if (!projectId) {
+      const idParsed2 = validateMonitoringProjectIdParam(req.params);
+      if (!idParsed2.ok) {
         res.status(400).json({
           error: 'BAD_REQUEST',
-          message: 'Project ID is required',
+          message: idParsed2.message,
           statusCode: 400,
         });
         return;
       }
+      const { projectId } = idParsed2.data as MonitoringProjectIdParam;
+      const user = req.user as RequestUser;
 
       // Проверяем, что проект принадлежит текущему пользователю
       const userProject = await this.monitoringService.getUserProject(

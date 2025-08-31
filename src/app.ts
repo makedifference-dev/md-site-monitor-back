@@ -30,16 +30,30 @@ app.use(slowQueryLogger(1000)); // Логируем запросы медлен�
 
 // Security middleware
 app.use(helmet());
-app.use(cors());
+// CORS: restrict to configured origins (comma-separated) unless '*'
+const corsOrigin = configService.corsOrigin;
+const allowedOrigins = corsOrigin.split(',').map(o => o.trim());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || corsOrigin === '*' || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+  })
+);
 
 // Rate limiting
 app.use('/auth', authRateLimit); // Строгий лимит для авторизации
-app.use('/api', apiRateLimit); // Общий лимит для API
+app.use('/', apiRateLimit); // Общий лимит для всех роутов (health/docs пропускаем в skip)
 
 // Logging and parsing
 app.use(morgan('combined'));
-app.use(express.json({ limit: '10mb' })); // Ограничиваем размер JSON
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: configService.jsonLimit }));
+app.use(express.urlencoded({ extended: true, limit: configService.jsonLimit }));
 
 // Инициализация модулей
 const appModule = new AppModule();
@@ -78,6 +92,12 @@ const gracefulShutdown = new GracefulShutdown({
     // Останавливаем Telegram бота
     const telegramModule = appModule.getTelegramModule();
     void telegramModule.stop();
+
+    // Закрываем соединение с БД
+    const { DatabaseService } = await import(
+      './modules/core/database/database.service'
+    );
+    await DatabaseService.disconnect();
 
     console.log('🛑 All services stopped');
     return Promise.resolve();

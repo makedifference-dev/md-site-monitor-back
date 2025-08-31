@@ -7,6 +7,11 @@ import {
   monitoringDocs,
   monitoringSchemas,
 } from '../monitoring/monitoring.docs';
+import { healthDocs, healthSchemas } from '../health/health.docs';
+import {
+  notificationsDocs,
+  notificationsSchemas,
+} from '../notifications/notifications.docs';
 
 const options = {
   definition: {
@@ -38,6 +43,8 @@ const options = {
         ...projectsSchemas,
         ...monitoringSchemas,
         ...apiInfoSchemas,
+        ...healthSchemas,
+        ...notificationsSchemas,
       },
     },
     paths: {
@@ -45,9 +52,12 @@ const options = {
       ...authDocs,
       ...projectsDocs,
       ...monitoringDocs,
+      ...healthDocs,
+      ...notificationsDocs,
     },
   },
-  apis: ['./src/**/*.ts'],
+  // We use programmatic docs objects; disable JSDoc scanning to save memory
+  apis: [],
 };
 
 export const specs = swaggerJsdoc(options);

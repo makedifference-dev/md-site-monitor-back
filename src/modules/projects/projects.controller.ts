@@ -1,7 +1,15 @@
-import { Request, Response } from 'express';
-import { ProjectsService } from './projects.service';
-import { CreateProjectRequest } from './projects.types';
-import { ErrorService } from '../error/error.service';
+import type { Request, Response } from 'express';
+import type { ProjectsService } from './projects.service';
+import {
+  type CreateProjectRequest,
+  type ProjectIdParam,
+  type UpdateProjectNameRequest,
+  validateCreateProject,
+  validateProjectIdParam,
+  validateUpdateProjectName,
+} from './projects.contract';
+import type { ErrorService } from '../error/error.service';
+import type { RequestUser } from '../auth/auth.contract';
 
 export class ProjectsController {
   private projectsService: ProjectsService;
@@ -13,24 +21,14 @@ export class ProjectsController {
   }
 
   async createProject(req: Request, res: Response): Promise<void> {
-    const user = req.user as { id: string }; // Пользователь уже проверен middleware
-    const { name, websiteUrl } = req.body as CreateProjectRequest;
-
-    if (!name || !websiteUrl) {
-      const error = this.errorService.createValidationError(
-        'Name and website URL are required'
-      );
+    const user = req.user as RequestUser; // Пользователь уже проверен middleware
+    const parsed = validateCreateProject(req.body);
+    if (!parsed.ok) {
+      const error = this.errorService.createValidationError(parsed.message);
       res.status(400).json(error);
       return;
     }
-
-    if (name.length < 1 || name.length > 100) {
-      const error = this.errorService.createValidationError(
-        'Project name must be between 1 and 100 characters'
-      );
-      res.status(400).json(error);
-      return;
-    }
+    const { name, websiteUrl } = parsed.data as CreateProjectRequest;
 
     const project = await this.projectsService.createProject(user.id, {
       name,
@@ -42,22 +40,20 @@ export class ProjectsController {
   }
 
   async getUserProjects(req: Request, res: Response): Promise<void> {
-    const user = req.user as { id: string }; // Пользователь уже проверен middleware
+    const user = req.user as RequestUser; // Пользователь уже проверен middleware
     const projects = await this.projectsService.getUserProjects(user.id);
     res.status(200).json({ message: 'User projects', data: projects });
   }
 
   async getProjectById(req: Request, res: Response): Promise<void> {
-    const user = req.user as { id: string }; // Пользователь уже проверен middleware
-    const { projectId } = req.params;
-
-    if (!projectId) {
-      const error = this.errorService.createValidationError(
-        'Project ID is required'
-      );
+    const user = req.user as RequestUser; // Пользователь уже проверен middleware
+    const idParsed = validateProjectIdParam(req.params);
+    if (!idParsed.ok) {
+      const error = this.errorService.createValidationError(idParsed.message);
       res.status(400).json(error);
       return;
     }
+    const { projectId } = idParsed.data as ProjectIdParam;
 
     const project = await this.projectsService.getProjectById(
       user.id,
@@ -67,33 +63,21 @@ export class ProjectsController {
   }
 
   async updateProjectName(req: Request, res: Response): Promise<void> {
-    const user = req.user as { id: string }; // Пользователь уже проверен middleware
-    const { projectId } = req.params;
-    const { name } = req.body as { name: string };
-
-    if (!projectId) {
-      const error = this.errorService.createValidationError(
-        'Project ID is required'
-      );
+    const user = req.user as RequestUser; // Пользователь уже проверен middleware
+    const idParsed = validateProjectIdParam(req.params);
+    if (!idParsed.ok) {
+      const error = this.errorService.createValidationError(idParsed.message);
       res.status(400).json(error);
       return;
     }
-
-    if (!name) {
-      const error = this.errorService.createValidationError(
-        'Project name is required'
-      );
+    const bodyParsed = validateUpdateProjectName(req.body);
+    if (!bodyParsed.ok) {
+      const error = this.errorService.createValidationError(bodyParsed.message);
       res.status(400).json(error);
       return;
     }
-
-    if (name.length < 1 || name.length > 100) {
-      const error = this.errorService.createValidationError(
-        'Project name must be between 1 and 100 characters'
-      );
-      res.status(400).json(error);
-      return;
-    }
+    const { projectId } = idParsed.data as ProjectIdParam;
+    const { name } = bodyParsed.data as UpdateProjectNameRequest;
 
     const project = await this.projectsService.updateProjectName(
       user.id,
@@ -106,16 +90,14 @@ export class ProjectsController {
   }
 
   async deactivateProject(req: Request, res: Response): Promise<void> {
-    const user = req.user as { id: string }; // Пользователь уже проверен middleware
-    const { projectId } = req.params;
-
-    if (!projectId) {
-      const error = this.errorService.createValidationError(
-        'Project ID is required'
-      );
+    const user = req.user as RequestUser; // Пользователь уже проверен middleware
+    const parsed = validateProjectIdParam(req.params);
+    if (!parsed.ok) {
+      const error = this.errorService.createValidationError(parsed.message);
       res.status(400).json(error);
       return;
     }
+    const { projectId } = parsed.data as ProjectIdParam;
 
     await this.projectsService.deactivateProject(user.id, projectId);
     res.status(200).json({ message: 'Project deactivated successfully' });

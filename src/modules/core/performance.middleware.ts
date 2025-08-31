@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
@@ -55,6 +55,10 @@ export const slowQueryLogger = (threshold: number = 1000) => {
 };
 
 // Rate limiting для API
+// External rate-limit store (e.g., Redis) can be plugged in deployment; using in-memory here
+const apiStore: import('express-rate-limit').Store | undefined = undefined;
+const authStore: import('express-rate-limit').Store | undefined = undefined;
+
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
   max: 100, // максимум 100 запросов с одного IP
@@ -64,6 +68,7 @@ export const apiRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  store: apiStore,
   skip: (req: Request) => {
     // Пропускаем health check и документацию
     return req.path.startsWith('/health') || req.path.startsWith('/api-docs');
@@ -80,6 +85,7 @@ export const authRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  store: authStore,
   skip: (req: Request) => {
     // Пропускаем refresh token
     return req.path === '/auth/refresh';

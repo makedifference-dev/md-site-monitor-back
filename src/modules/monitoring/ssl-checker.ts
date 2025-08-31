@@ -1,6 +1,6 @@
 import * as tls from 'tls';
 import { URL } from 'url';
-import type { SSLCertificateInfo } from './monitoring.types';
+import type { SSLCertificateInfo } from './monitoring.contract';
 
 export class SSLChecker {
   /**
@@ -48,10 +48,16 @@ export class SSLChecker {
 
             socket.destroy();
 
+            let issuer: string = 'Unknown';
+            if (cert.issuer.CN) {
+              issuer = cert.issuer.CN;
+            } else if (cert.issuer.O) {
+              issuer = cert.issuer.O;
+            }
             resolve({
               valid,
               expiry,
-              issuer: cert.issuer.CN || cert.issuer.O || 'Unknown',
+              issuer,
             });
           }
         );

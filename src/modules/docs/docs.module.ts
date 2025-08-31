@@ -23,10 +23,10 @@ export class DocsModule {
       this.controller.getOpenApiSpec.bind(this.controller)
     );
 
-    // Swagger UI
-    this.router.use('/', swaggerUi.serve);
-    this.router.get(
+    // Swagger UI (serve + setup в одном use, совместимо с Express 5)
+    this.router.use(
       '/',
+      swaggerUi.serve,
       swaggerUi.setup(specs, {
         customCss: '.swagger-ui .topbar { display: none }',
         customSiteTitle: 'MD Site Monitor API Documentation',

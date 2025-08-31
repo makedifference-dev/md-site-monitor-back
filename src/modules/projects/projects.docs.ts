@@ -1,13 +1,15 @@
 // Автоматически сгенерированная документация для проектов
 import {
+  buildEndpoint,
+  makeParam,
+  ref,
   generateSchemaFromInterface,
-  generateEndpointDoc,
 } from '../docs/swagger.utils';
 import {
   createProjectRequestExample,
   projectResponseExample,
   projectsListResponseExample,
-} from './projects.types';
+} from './projects.contract';
 
 // Генерация схем для Swagger (не используются, оставлены для будущего использования)
 // const createProjectRequestSchema = generateSchemaFromInterface(
@@ -24,39 +26,53 @@ import {
 // Документация эндпоинтов
 export const projectsDocs = {
   '/projects': {
-    ...generateEndpointDoc(
-      '/projects',
-      'post',
-      'Create a new project',
-      'Projects'
-    ),
-    ...generateEndpointDoc(
-      '/projects',
-      'get',
-      'Get user projects list',
-      'Projects'
-    ),
+    ...buildEndpoint('/projects', 'post', 'Create a new project', {
+      tag: 'Projects',
+      security: [{ bearerAuth: [] }],
+      requestBody: { schema: ref('CreateProjectRequest'), required: true },
+      responses: { '200': { schema: ref('ProjectResponse') } },
+    }),
+    ...buildEndpoint('/projects', 'get', 'Get user projects list', {
+      tag: 'Projects',
+      security: [{ bearerAuth: [] }],
+      responses: { '200': { schema: ref('ProjectsListResponse') } },
+    }),
   },
 
   '/projects/{projectId}': {
-    ...generateEndpointDoc(
-      '/projects/{projectId}',
-      'get',
-      'Get project by ID',
-      'Projects'
-    ),
-    ...generateEndpointDoc(
-      '/projects/{projectId}',
-      'put',
-      'Update project name',
-      'Projects'
-    ),
-    ...generateEndpointDoc(
-      '/projects/{projectId}',
-      'delete',
-      'Deactivate project',
-      'Projects'
-    ),
+    ...buildEndpoint('/projects/{projectId}', 'get', 'Get project by ID', {
+      tag: 'Projects',
+      security: [{ bearerAuth: [] }],
+      parameters: [makeParam('projectId', 'path', { type: 'string' }, true)],
+      responses: { '200': { schema: ref('ProjectResponse') } },
+    }),
+    ...buildEndpoint('/projects/{projectId}', 'put', 'Update project name', {
+      tag: 'Projects',
+      security: [{ bearerAuth: [] }],
+      parameters: [makeParam('projectId', 'path', { type: 'string' }, true)],
+      requestBody: {
+        required: true,
+        schema: {
+          type: 'object',
+          required: ['name'],
+          properties: { name: { type: 'string' } },
+        },
+      },
+      responses: { '200': { schema: ref('ProjectResponse') } },
+    }),
+    ...buildEndpoint('/projects/{projectId}', 'delete', 'Deactivate project', {
+      tag: 'Projects',
+      security: [{ bearerAuth: [] }],
+      parameters: [makeParam('projectId', 'path', { type: 'string' }, true)],
+      responses: {
+        '200': {
+          schema: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+          },
+        },
+      },
+    }),
   },
 };
 

@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { ApiInfoService } from './api-info.service';
+import type { Request, Response } from 'express';
+import type { ApiInfoService } from './api-info.service';
 
 export class ApiInfoController {
   private apiInfoService: ApiInfoService;

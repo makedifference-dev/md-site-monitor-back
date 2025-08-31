@@ -31,7 +31,8 @@ export class NotificationsModule {
   }
 
   private setupRoutes(): void {
-    this.router.use('/notifications', this.notificationsController.getRouter());
+    // Expose routes relative to module root; base is mounted in AppModule
+    this.router.use('/', this.notificationsController.getRouter());
   }
 
   public getRouter(): Router {

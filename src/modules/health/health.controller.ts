@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { HealthService } from './health.service';
-import { ErrorService } from '../error/error.service';
+import type { ErrorService } from '../error/error.service';
 import { ConfigService } from '../core/config.service';
 
 export class HealthController {

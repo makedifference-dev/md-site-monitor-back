@@ -36,6 +36,16 @@ const envSchema = z.object({
   // Application Information
   APP_VERSION: z.string().default('1.0.0'),
   APP_NAME: z.string().default('MD Site Monitor Backend'),
+
+  // CORS and Swagger
+  CORS_ORIGIN: z.string().default('*'), // Comma-separated list or '*'
+  SWAGGER_ENABLED: z.string().default('false'),
+
+  // Request body size
+  JSON_LIMIT: z.string().default('10mb'),
+
+  // Monitoring
+  MONITOR_CONCURRENCY: z.string().transform(Number).default('5'),
 });
 
 // Тип конфигурации
@@ -157,7 +167,7 @@ export class ConfigService {
   }
 
   public get isTelegramEnabled(): boolean {
-    return !!this.config.TELEGRAM_BOT_TOKEN;
+    return Boolean(this.config.TELEGRAM_BOT_TOKEN);
   }
 
   // Application Information
@@ -167,6 +177,25 @@ export class ConfigService {
 
   public get appName(): string {
     return this.config.APP_NAME;
+  }
+
+  // CORS and Swagger
+  public get corsOrigin(): string {
+    return this.config.CORS_ORIGIN;
+  }
+
+  public get swaggerEnabled(): boolean {
+    return this.config.SWAGGER_ENABLED === 'true';
+  }
+
+  // Request limits
+  public get jsonLimit(): string {
+    return this.config.JSON_LIMIT;
+  }
+
+  // Monitoring
+  public get monitorConcurrency(): number {
+    return this.config.MONITOR_CONCURRENCY;
   }
 
   /**

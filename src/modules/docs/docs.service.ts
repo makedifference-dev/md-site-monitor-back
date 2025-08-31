@@ -1,7 +1,7 @@
 import { specs } from './docs.config';
 
 export class DocsService {
-  getOpenApiSpec() {
+  getOpenApiSpec(): typeof specs {
     return specs;
   }
 }

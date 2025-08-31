@@ -1,6 +1,6 @@
-import { Server } from 'http';
+import type { Server } from 'http';
 import { DatabaseService } from './database/database.service';
-import type { GracefulShutdownOptions } from './core.types';
+import type { GracefulShutdownOptions } from './core.contract';
 
 export class GracefulShutdown {
   private server: Server;

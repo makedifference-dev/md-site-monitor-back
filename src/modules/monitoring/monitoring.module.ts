@@ -35,7 +35,8 @@ export class MonitoringModule {
   }
 
   private setupRoutes(): void {
-    this.router.use('/monitoring', this.monitoringController.getRouter());
+    // Expose routes relative to module root; base is mounted in AppModule
+    this.router.use('/', this.monitoringController.getRouter());
   }
 
   public getRouter(): Router {

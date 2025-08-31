@@ -1,9 +1,9 @@
-import { PrismaClient, type Project } from '@prisma/client';
-import {
+import { type PrismaClient, type Project } from '@prisma/client';
+import type {
   CreateProjectRequest,
   ProjectResponse,
   ProjectsListResponse,
-} from './projects.types';
+} from './projects.contract';
 import { ErrorService } from '../error/error.service';
 import { DatabaseService } from '../core/database/database.service';
 import { CacheService } from '../core/cache/cache.service';

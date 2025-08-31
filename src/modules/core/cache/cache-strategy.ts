@@ -1,4 +1,4 @@
-import { CachePriority, type CacheStrategy } from './cache.types';
+import { CachePriority, type CacheStrategy } from './cache.contract';
 export { CachePriority, CacheStrategy };
 
 export const CACHE_STRATEGIES: Record<string, CacheStrategy | undefined> = {

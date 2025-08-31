@@ -6,7 +6,7 @@ import {
   notFoundErrorExample,
   internalErrorExample,
   databaseErrorExample,
-} from './error.types';
+} from './error.contract';
 
 // Генерируем схемы из примеров данных
 const validationErrorSchema = generateSchemaFromInterface(

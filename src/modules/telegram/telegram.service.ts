@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain */
-import { Telegraf, Context } from 'telegraf';
-import { PrismaClient } from '@prisma/client';
-import { ErrorService } from '../error/error.service';
+import { Telegraf, type Context } from 'telegraf';
+import type { PrismaClient } from '@prisma/client';
+import type { ErrorService } from '../error/error.service';
 import { DatabaseService } from '../core/database/database.service';
 import { ConfigService } from '../core/config.service';
 import type {
   TelegramNotification,
   SiteDownTelegramNotification,
   TelegramLinkRequest,
-} from './telegram.types';
+} from './telegram.contract';
 
 export class TelegramService {
   private bot!: Telegraf<Context>;
@@ -75,24 +75,23 @@ export class TelegramService {
       }
     });
 
-    // Обработка команды /link
+    // Обработка команды /link (с минимальным количеством ветвлений)
     this.bot.command('link', async ctx => {
       try {
         const user = ctx.from;
+        const args = ctx.message.text.split(' ');
+        const email = args[1]?.trim();
+
         if (!user) {
           await ctx.reply('❌ Ошибка получения информации о пользователе');
           return;
         }
-
-        const args = ctx.message.text.split(' ');
         if (args.length < 2) {
           await ctx.reply(
             '❌ Неверный формат команды.\n\nИспользуйте: /link your@email.com'
           );
           return;
         }
-
-        const email = args[1]?.trim();
         if (!email) {
           await ctx.reply('❌ Email не может быть пустым');
           return;
@@ -104,18 +103,16 @@ export class TelegramService {
 
         const result = await this.linkTelegramAccount({
           telegramId: user.id.toString(),
-          telegramUsername: user.username,
+          telegramUsername: user.username ?? undefined,
           email,
         });
 
-        if (result.success) {
-          await ctx.reply(
-            `✅ <b>Аккаунт успешно привязан!</b>\n\nТеперь вы будете получать уведомления о состоянии ваших сайтов в Telegram.`,
-            { parse_mode: 'HTML' }
-          );
-        } else {
-          await ctx.reply(`❌ ${result.error}`);
-        }
+        await ctx.reply(
+          result.success
+            ? `✅ <b>Аккаунт успешно привязан!</b>\n\nТеперь вы будете получать уведомления о состоянии ваших сайтов в Telegram.`
+            : `❌ ${result.error}`,
+          result.success ? { parse_mode: 'HTML' } : undefined
+        );
       } catch (error) {
         this.errorService.logError(
           error as Error,
@@ -176,12 +173,14 @@ export class TelegramService {
         }
 
         const activeProjects = dbUser.projects.filter(p => p.isActive);
+        const resolvedFullName = dbUser.fullName ?? 'Не указано';
+        const resolvedUsername = user.username ?? 'Не указано';
         const statusMessage = `
 📊 <b>Статус аккаунта:</b>
 
-👤 <b>Пользователь:</b> ${dbUser.fullName ?? 'Не указано'}
+👤 <b>Пользователь:</b> ${resolvedFullName}
 📧 <b>Email:</b> ${dbUser.email}
-🔗 <b>Telegram:</b> @${user.username ?? 'Не указано'}
+🔗 <b>Telegram:</b> @${resolvedUsername}
 📈 <b>Активных проектов:</b> ${activeProjects.length}
 
 ✅ <b>Аккаунт привязан и активен!</b>

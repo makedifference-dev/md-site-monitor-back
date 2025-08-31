@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { DatabaseService } from '../core/database/database.service';
 import { ConfigService } from '../core/config.service';
-import type { HealthCheck, HealthStatus } from './health.types';
+import type { HealthCheck, HealthStatus } from './health.contract';
 
 export type { HealthCheck, HealthStatus };
 

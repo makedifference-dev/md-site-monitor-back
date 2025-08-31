@@ -1,14 +1,14 @@
-import { PrismaClient, type Project } from '@prisma/client';
-import { ErrorService } from '../error/error.service';
+import { type PrismaClient, type Project } from '@prisma/client';
+import type { ErrorService } from '../error/error.service';
 import { SSLChecker } from './ssl-checker';
-import { NotificationsService } from '../notifications/notifications.service';
+import type { NotificationsService } from '../notifications/notifications.service';
 import { DatabaseService } from '../core/database/database.service';
 import { CacheService } from '../core/cache/cache.service';
 import type {
   SiteCheckResult,
   MonitoringStats,
   ProjectCheckHistoryResponse,
-} from './monitoring.types';
+} from './monitoring.contract';
 
 export class MonitoringService {
   private prisma: PrismaClient;
@@ -18,6 +18,9 @@ export class MonitoringService {
   private monitoringInterval: NodeJS.Timeout | null = null;
   private readonly CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут
   private readonly REQUEST_TIMEOUT = 30000; // 30 секунд
+  private readonly CONCURRENCY: number = Number(
+    process.env.MONITOR_CONCURRENCY ?? 5
+  );
 
   constructor(
     errorService: ErrorService,
@@ -75,11 +78,11 @@ export class MonitoringService {
 
       console.log(`📊 Found ${activeProjects.length} active projects to check`);
 
-      const checkPromises = activeProjects.map(project =>
-        this.checkSingleSite(project.id, project.websiteUrl)
-      );
+      const tasks = activeProjects.map(project => {
+        return () => this.checkSingleSite(project.id, project.websiteUrl);
+      });
 
-      const results = await Promise.allSettled(checkPromises);
+      const results = await this.runWithConcurrency(tasks, this.CONCURRENCY);
 
       let successCount = 0;
       let errorCount = 0;
@@ -104,6 +107,38 @@ export class MonitoringService {
     } catch (error) {
       this.errorService.logError(error as Error, 'Error during site checks');
     }
+  }
+  private async runWithConcurrency<T>(
+    tasks: Array<() => Promise<T>>,
+    concurrency: number
+  ): Promise<Array<PromiseSettledResult<T>>> {
+    const results: Array<PromiseSettledResult<T>> = [];
+    let index = 0;
+    const workers: Array<Promise<void>> = [];
+    const worker = async (): Promise<void> => {
+      while (index < tasks.length) {
+        const current = index++;
+        try {
+          const fn = tasks[current] as () => Promise<T>;
+          const value = await fn();
+          results[current] = {
+            status: 'fulfilled',
+            value,
+          } as PromiseFulfilledResult<T>;
+        } catch (err) {
+          results[current] = {
+            status: 'rejected',
+            reason: err,
+          } as PromiseRejectedResult;
+        }
+      }
+    };
+    const workerCount = Math.max(1, Math.min(concurrency, tasks.length));
+    for (let i = 0; i < workerCount; i++) {
+      workers.push(worker());
+    }
+    await Promise.all(workers);
+    return results;
   }
 
   // Проверка одного сайта

@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { ErrorService } from './error.service';
-import { ApiError } from './error.types';
+import type { Request, Response, NextFunction } from 'express';
+import type { ErrorService } from './error.service';
+import type { ApiError } from './error.contract';
 
 export class ErrorController {
   private errorService: ErrorService;
@@ -19,23 +19,23 @@ export class ErrorController {
     // Логируем ошибку
     this.errorService.logError(error, `${req.method} ${req.path}`);
 
-    // Определяем тип ошибки и создаем соответствующий ответ
-    let apiError: ApiError;
-
-    if (this.isApiError(error)) {
-      apiError = error;
-    } else if (error.name === 'ValidationError') {
-      apiError = this.errorService.createValidationError(error.message);
-    } else if (error.name === 'UnauthorizedError') {
-      apiError = this.errorService.createAuthError(
-        error.message,
-        'UNAUTHORIZED'
-      );
-    } else if (error.name === 'NotFoundError') {
-      apiError = this.errorService.createNotFoundError(error.message);
-    } else {
-      apiError = this.errorService.handleUnknownError(error);
-    }
+    // Определяем тип ошибки и создаем соответствующий ответ (без каскада ветвей)
+    const apiError: ApiError = this.isApiError(error)
+      ? error
+      : ((): ApiError => {
+          const factories: Record<string, (e: Error) => ApiError> = {
+            ValidationError: e =>
+              this.errorService.createValidationError(e.message),
+            UnauthorizedError: e =>
+              this.errorService.createAuthError(e.message, 'UNAUTHORIZED'),
+            NotFoundError: e =>
+              this.errorService.createNotFoundError(e.message),
+          };
+          const factory = factories[error.name];
+          return factory
+            ? factory(error)
+            : this.errorService.handleUnknownError(error);
+        })();
 
     // Отправляем ответ с ошибкой
     const statusCode = apiError.statusCode ?? 500;
@@ -54,21 +54,25 @@ export class ErrorController {
 
   // Вспомогательный метод для проверки типа ошибки
   private isApiError(error: unknown): error is ApiError {
-    return (
-      !!error &&
-      typeof error === 'object' &&
-      'error' in (error as Record<string, unknown>) &&
-      'message' in (error as Record<string, unknown>)
-    );
+    const obj = error as Record<string, unknown> | null | undefined;
+    if (obj && typeof obj === 'object') {
+      return 'error' in obj && 'message' in obj;
+    }
+    return false;
   }
 
   // Метод для получения middleware обработчика ошибок
-  getErrorHandler() {
+  getErrorHandler(): (
+    error: Error | ApiError,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => void {
     return this.handleError.bind(this);
   }
 
   // Метод для получения middleware обработчика 404
-  getNotFoundHandler() {
+  getNotFoundHandler(): (req: Request, res: Response) => void {
     return this.handleNotFound.bind(this);
   }
 }

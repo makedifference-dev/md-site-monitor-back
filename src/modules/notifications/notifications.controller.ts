@@ -1,8 +1,12 @@
-import { Router, Request, Response } from 'express';
-import { NotificationsService } from './notifications.service';
-import { ErrorService } from '../error/error.service';
-import { AuthMiddleware } from '../auth/auth.middleware';
-import type { RequestUser } from '../auth/auth.types';
+import { Router, type Request, type Response } from 'express';
+import type { NotificationsService } from './notifications.service';
+import {
+  validateSendTestEmail,
+  type SendTestEmailRequest,
+} from './notifications.contract';
+import type { ErrorService } from '../error/error.service';
+import type { AuthMiddleware } from '../auth/auth.middleware';
+import type { RequestUser } from '../auth/auth.contract';
 
 export class NotificationsController {
   private router: Router;
@@ -45,20 +49,16 @@ export class NotificationsController {
         return;
       }
 
-      const { to, subject, message } = req.body as {
-        to: string;
-        subject: string;
-        message: string;
-      };
-
-      if (!to || !subject || !message) {
+      const parsed = validateSendTestEmail(req.body);
+      if (!parsed.ok) {
         res.status(400).json({
           error: 'BAD_REQUEST',
-          message: 'Email, subject and message are required',
+          message: parsed.message,
           statusCode: 400,
         });
         return;
       }
+      const { to, subject, message } = parsed.data as SendTestEmailRequest;
 
       const success = await this.notificationsService.sendEmail({
         to,
